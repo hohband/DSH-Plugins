@@ -1,0 +1,12 @@
+# macOS
+.DS_Store
+
+# Node
+node_modules/
+*.log
+
+# 密钥 / 凭据 —— 绝不提交
+*.credentials.yaml
+.credentials.yaml
+.env
+.env.*
