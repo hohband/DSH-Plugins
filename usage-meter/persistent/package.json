@@ -1,0 +1,20 @@
+{
+  "name": "usage-meter",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-runtime",
+        "@deepseek-ai/dsh-cordis-client-runner"
+      ]
+    }
+  },
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  }
+}
