@@ -31,6 +31,29 @@ return {
       .um-v { font-variant-numeric: tabular-nums; }
     `)
 
+    function fmtPct(v) {
+      if (typeof v !== 'number' || !isFinite(v)) return '—'
+      return Math.round(v * 10) / 10 + '%'
+    }
+
+    function fmtMoney(v) {
+      if (typeof v !== 'number' || !isFinite(v)) return '—'
+      return '$' + Math.round(v * 100) / 100
+    }
+
+    function fmtStamp(v) {
+      const d = new Date(v)
+      if (isNaN(d.getTime())) return ''
+      const pad = (n) => (n < 10 ? '0' + n : '' + n)
+      return pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes())
+    }
+
+    function fmtDays(v) {
+      const d = new Date(v)
+      if (isNaN(d.getTime())) return ''
+      return '（剩 ' + Math.max(0, Math.ceil((d.getTime() - Date.now()) / 86400000)) + ' 天）'
+    }
+
     function UsagePanel() {
       const [data, setData] = React.useState(null)
       const [open, setOpen] = React.useState(false)
@@ -46,13 +69,14 @@ return {
         return () => { if (stopInterval) stopInterval() }
       }, [])
 
-      function summarySeg(p) {
-        const nm = React.createElement('span', { className: 'um-name' }, p.name + ' ')
+      function summarySeg(p, key) {
+        const label = p.provider === 'command-code' && p.plan ? p.name + ' ' + p.plan : p.name
+        const nm = React.createElement('span', { className: 'um-name' }, label + ' ')
         let val
         if (!p.ok) val = React.createElement('span', { className: 'um-err' }, '⚠')
         else if (p.kind === 'balance') val = React.createElement('span', { className: 'um-val' }, p.total + (p.currency || ''))
-        else if (p.kind === 'usage') val = React.createElement('span', { className: 'um-val' }, '5h ' + (p.rolling ? p.rolling.percent + '%' : '—'))
-        return React.createElement('span', null, nm, val)
+        else if (p.kind === 'usage') val = React.createElement('span', { className: 'um-val' }, '5h ' + fmtPct(p.rolling ? p.rolling.percent : null))
+        return React.createElement('span', { key }, nm, val)
       }
 
       function detailBody(p) {
@@ -64,9 +88,36 @@ return {
             React.createElement('div', { className: 'um-row' }, React.createElement('span', { className: 'um-k' }, '赠送余额'), React.createElement('span', { className: 'um-v' }, p.granted + ' ' + (p.currency || ''))),
           )
         }
+        if (p.provider === 'command-code') {
+          const rows = []
+          const add = (label, value, className, title) => {
+            rows.push(React.createElement('div', { className: 'um-row', key: label },
+              React.createElement('span', { className: 'um-k' }, label),
+              React.createElement('span', { className: 'um-v' + (className ? ' ' + className : ''), title: title || undefined }, value)))
+          }
+          const window = (label, w) => {
+            if (!w) return
+            const amount = typeof w.used === 'number' && typeof w.cap === 'number' ? ' · ' + fmtMoney(w.used) + '/' + fmtMoney(w.cap) : ''
+            add(label, fmtPct(w.percent) + amount, w.exceeded ? 'um-err' : '', w.resetsAt ? fmtStamp(w.resetsAt) + ' 重置' : undefined)
+          }
+          add('套餐', [p.plan || 'Command Code', p.status].filter(Boolean).join(' · '))
+          if (typeof p.monthlyRemaining === 'number') {
+            add('本月剩余', fmtMoney(p.monthlyRemaining) + (typeof p.monthlyTotal === 'number' ? ' / ' + fmtMoney(p.monthlyTotal) : ''))
+          }
+          if (typeof p.usagePercent === 'number') {
+            add('本期已用', fmtPct(p.usagePercent) + (typeof p.monthlyUsed === 'number' ? ' · ' + fmtMoney(p.monthlyUsed) : ''))
+          }
+          window('5 小时窗口', p.rolling)
+          window('本周窗口', p.weekly)
+          if (p.rolling && p.rolling.resetsAt) add('5 小时重置', fmtStamp(p.rolling.resetsAt))
+          if (p.weekly && p.weekly.resetsAt) add('本周重置', fmtStamp(p.weekly.resetsAt))
+          if (p.periodEnd) add('周期结束', fmtStamp(p.periodEnd).split(' ')[0] + fmtDays(p.periodEnd), '', fmtStamp(p.periodEnd))
+          if (rows.length === 0) rows.push(React.createElement('div', { key: 'empty' }, '无数据'))
+          return React.createElement('div', null, rows)
+        }
         if (p.kind === 'usage') {
           const rows = []
-          const add = (label, u) => { if (u) rows.push(React.createElement('div', { className: 'um-row' }, React.createElement('span', { className: 'um-k' }, label), React.createElement('span', { className: 'um-v' }, u.percent + '%'))) }
+          const add = (label, u) => { if (u) rows.push(React.createElement('div', { className: 'um-row', key: label }, React.createElement('span', { className: 'um-k' }, label), React.createElement('span', { className: 'um-v' }, fmtPct(u.percent)))) }
           add('滚动(5小时)', p.rolling); add('本周', p.weekly); add('本月', p.monthly)
           if (rows.length === 0) rows.push(React.createElement('div', null, '无数据'))
           return React.createElement('div', null, rows)
@@ -77,10 +128,10 @@ return {
       const children = [React.createElement('span', { className: 'um-dot', key: 'dot' }, '⚡')]
       if (data && data.providers) {
         data.providers.forEach((p) => {
-          children.push(summarySeg(p))
+          children.push(summarySeg(p, 'seg-' + p.provider))
           children.push(React.createElement('span', { className: 'um-sep', key: 'sep-' + p.provider }, '·'))
         })
-        children.pop()
+        if (data.providers.length > 0) children.pop()
       } else {
         children.push(React.createElement('span', { className: 'um-name', key: 'loading' }, '额度 …'))
       }
@@ -91,7 +142,7 @@ return {
       if (open) {
         const items = (data && data.providers ? data.providers : []).map((p) =>
           React.createElement('div', { className: 'um-item', key: p.provider },
-            React.createElement('div', { className: 'um-title' }, (p.name === 'DS' ? 'DeepSeek 官方' : p.name === 'OG' ? 'OpenCode Go' : p.name)),
+            React.createElement('div', { className: 'um-title' }, (p.provider === 'deepseek-official' ? 'DeepSeek 官方' : p.provider === 'opencode-go' ? 'OpenCode Go' : p.provider === 'command-code' ? 'Command Code' + (p.plan ? ' ' + p.plan : '') : p.name)),
             detailBody(p),
           )
         )
