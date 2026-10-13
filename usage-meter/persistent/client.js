@@ -91,24 +91,14 @@ window.__ModuleLoader__.load({
               React.createElement("div", { className: "um-row" }, React.createElement("span", { className: "um-k" }, "赠送余额"), React.createElement("span", { className: "um-v" }, p.granted + " " + (p.currency || ""))),
             )
           }
-          if (p.provider === "command-code") {
-            // 只保留三个窗口,每行 = 窗口名称 + 重置时间 + 百分比用量
-            const win = (label, percent, resetAt, exceeded) => React.createElement("div", { className: "um-row", key: label },
-              React.createElement("span", { className: "um-k" }, label),
-              React.createElement("span", { className: "um-v" + (exceeded ? " um-err" : "") }, (resetAt ? fmtStamp(resetAt) : "—") + " · " + fmtPct(percent)))
-            const rolling = p.rolling || {}
-            const weekly = p.weekly || {}
-            return React.createElement("div", null,
-              win("5 小时", rolling.percent, rolling.resetsAt, rolling.exceeded),
-              win("周", weekly.percent, weekly.resetsAt, weekly.exceeded),
-              win("月", p.usagePercent, p.periodEnd, false))
-          }
           if (p.kind === "usage") {
-            const rows = []
-            const add = (label, u) => { if (u) rows.push(React.createElement("div", { className: "um-row", key: label }, React.createElement("span", { className: "um-k" }, label), React.createElement("span", { className: "um-v" }, fmtPct(u.percent)))) }
-            add("滚动(5小时)", p.rolling); add("本周", p.weekly); add("本月", p.monthly)
-            if (rows.length === 0) rows.push(React.createElement("div", null, "无数据"))
-            return React.createElement("div", null, rows)
+            // 统一格式(OpenCode Go / Command Code 同款):窗口名称 + 重置时间 + 百分比用量
+            // 旧版 Host 只给 periodEnd + usagePercent 时在这里补出月窗口
+            const monthly = p.monthly || (p.periodEnd ? { percent: p.usagePercent, resetsAt: p.periodEnd } : null)
+            const win = (label, w) => React.createElement("div", { className: "um-row", key: label },
+              React.createElement("span", { className: "um-k" }, label),
+              React.createElement("span", { className: "um-v" + (w && w.exceeded ? " um-err" : "") }, (w && w.resetsAt ? fmtStamp(w.resetsAt) : "—") + " · " + fmtPct(w ? w.percent : null)))
+            return React.createElement("div", null, win("5 小时", p.rolling), win("周", p.weekly), win("月", monthly))
           }
           return null
         }

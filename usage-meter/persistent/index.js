@@ -70,6 +70,8 @@ function commandCodeProvider(credits, subscription) {
   const pool = remaining === null ? null : (planCredits !== null ? Math.max(planCredits, monthlyRemaining) + purchased + free : remaining)
   const used = pool !== null && remaining !== null ? Math.max(0, pool - remaining) : null
   const limits = credits !== null && typeof credits === 'object' && credits.windowLimits ? credits.windowLimits : null
+  const periodEnd = s && typeof s.currentPeriodEnd === 'string' ? s.currentPeriodEnd : null
+  const usagePercent = pool !== null && pool > 0 && used !== null ? round2(Math.min((used / pool) * 100, 100)) : null
   return {
     provider: 'command-code',
     name: 'CC',
@@ -78,15 +80,18 @@ function commandCodeProvider(credits, subscription) {
     planId,
     plan: planId !== null ? CC_PLAN_NAMES[planId] : null,
     status: s && typeof s.status === 'string' ? s.status : null,
-    periodEnd: s && typeof s.currentPeriodEnd === 'string' ? s.currentPeriodEnd : null,
+    periodEnd,
     monthlyRemaining: monthlyRemaining === null ? null : round2(monthlyRemaining),
     monthlyTotal: planCredits,
     monthlyUsed: used === null ? null : round2(used),
-    usagePercent: pool !== null && pool > 0 && used !== null ? round2(Math.min((used / pool) * 100, 100)) : null,
+    usagePercent,
     purchased: round2(purchased),
     free: round2(free),
+    // 三个窗口统一成同一形状(percent / resetsAt / exceeded):5 小时与周取自
+    // windowLimits,月取自订阅周期(池子已用占比,重置时间 = 账单周期结束)
     rolling: ccWindow(limits ? limits.fiveHour : null),
     weekly: ccWindow(limits ? limits.weekly : null),
+    monthly: { percent: usagePercent, resetsAt: periodEnd, exceeded: false },
   }
 }
 
