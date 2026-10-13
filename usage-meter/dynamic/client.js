@@ -78,12 +78,12 @@ return {
           )
         }
         if (p.kind === 'usage') {
-          // 统一格式(OpenCode Go / Command Code 同款):窗口名称 + 重置时间 + 百分比用量
+          // 统一格式(OpenCode Go / Command Code 同款):左侧「窗口名称 · 重置时间」,右侧百分比用量
           // 旧版 Host 只给 periodEnd + usagePercent 时在这里补出月窗口
           const monthly = p.monthly || (p.periodEnd ? { percent: p.usagePercent, resetsAt: p.periodEnd } : null)
           const win = (label, w) => React.createElement('div', { className: 'um-row', key: label },
-            React.createElement('span', { className: 'um-k' }, label),
-            React.createElement('span', { className: 'um-v' + (w && w.exceeded ? ' um-err' : '') }, (w && w.resetsAt ? fmtStamp(w.resetsAt) : '—') + ' · ' + fmtPct(w ? w.percent : null)))
+            React.createElement('span', { className: 'um-k' }, label + ' · ' + (w && w.resetsAt ? fmtStamp(w.resetsAt) : '—')),
+            React.createElement('span', { className: 'um-v' + (w && w.exceeded ? ' um-err' : '') }, fmtPct(w ? w.percent : null)))
           return React.createElement('div', null, win('5 小时', p.rolling), win('周', p.weekly), win('月', monthly))
         }
         return null

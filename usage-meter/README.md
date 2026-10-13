@@ -6,7 +6,7 @@
 - **OpenCode Go** (`opencode-go`)：5 小时滚动窗口用量百分比，数据来自 `GET https://opencode.ai/zen/go/v1/usage`。
 - **Command Code** (`command-code`)：GOAT 等订阅的用量（5 小时 / 周 / 月三个窗口的重置时间与用量百分比），数据来自 `GET https://api.commandcode.ai/alpha/billing/credits` 与 `GET https://api.commandcode.ai/alpha/billing/subscriptions`。
 
-摘要胶囊示例：`⚡ DS 7.79CNY · OG 5h 10% · CC GOAT 5h 6.6%`。点击胶囊展开详情面板（DeepSeek 三项余额 + OpenCode Go 与 Command Code 各三行窗口：「5 小时」「周」「月」，每行 = 窗口名称 + 重置时间 + 百分比用量），「✕」关闭，每 60 秒自动刷新。
+摘要胶囊示例：`⚡ DS 7.79CNY · OG 5h 10% · CC GOAT 5h 6.6%`。点击胶囊展开详情面板（DeepSeek 三项余额 + OpenCode Go 与 Command Code 各三行窗口：「5 小时」「周」「月」，每行左侧 = `窗口名称 · 重置时间`，右侧 = 百分比用量），「✕」关闭，每 60 秒自动刷新。
 
 ## 两种形态
 
