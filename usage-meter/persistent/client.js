@@ -48,22 +48,11 @@ window.__ModuleLoader__.load({
         return Math.round(value * 10) / 10 + "%"
       }
 
-      function fmtMoney(value) {
-        if (typeof value !== "number" || !isFinite(value)) return "—"
-        return "$" + Math.round(value * 100) / 100
-      }
-
       function fmtStamp(value) {
         const d = new Date(value)
         if (isNaN(d.getTime())) return ""
         const pad = (n) => (n < 10 ? "0" + n : "" + n)
         return pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes())
-      }
-
-      function fmtDays(value) {
-        const d = new Date(value)
-        if (isNaN(d.getTime())) return ""
-        return "（剩 " + Math.max(0, Math.ceil((d.getTime() - Date.now()) / 86400000)) + " 天）"
       }
 
       function UsagePanel() {
@@ -103,31 +92,16 @@ window.__ModuleLoader__.load({
             )
           }
           if (p.provider === "command-code") {
-            const rows = []
-            const add = (label, value, className, title) => {
-              rows.push(React.createElement("div", { className: "um-row", key: label },
-                React.createElement("span", { className: "um-k" }, label),
-                React.createElement("span", { className: "um-v" + (className ? " " + className : ""), title: title || undefined }, value)))
-            }
-            const window = (label, w) => {
-              if (!w) return
-              const amount = typeof w.used === "number" && typeof w.cap === "number" ? " · " + fmtMoney(w.used) + "/" + fmtMoney(w.cap) : ""
-              add(label, fmtPct(w.percent) + amount, w.exceeded ? "um-err" : "", w.resetsAt ? fmtStamp(w.resetsAt) + " 重置" : undefined)
-            }
-            add("套餐", [p.plan || "Command Code", p.status].filter(Boolean).join(" · "))
-            if (typeof p.monthlyRemaining === "number") {
-              add("本月剩余", fmtMoney(p.monthlyRemaining) + (typeof p.monthlyTotal === "number" ? " / " + fmtMoney(p.monthlyTotal) : ""))
-            }
-            if (typeof p.usagePercent === "number") {
-              add("本期已用", fmtPct(p.usagePercent) + (typeof p.monthlyUsed === "number" ? " · " + fmtMoney(p.monthlyUsed) : ""))
-            }
-            window("5 小时窗口", p.rolling)
-            window("本周窗口", p.weekly)
-            if (p.rolling && p.rolling.resetsAt) add("5 小时重置", fmtStamp(p.rolling.resetsAt))
-            if (p.weekly && p.weekly.resetsAt) add("本周重置", fmtStamp(p.weekly.resetsAt))
-            if (p.periodEnd) add("周期结束", fmtStamp(p.periodEnd).split(" ")[0] + fmtDays(p.periodEnd), "", fmtStamp(p.periodEnd))
-            if (rows.length === 0) rows.push(React.createElement("div", { key: "empty" }, "无数据"))
-            return React.createElement("div", null, rows)
+            // 只保留三个窗口,每行 = 窗口名称 + 重置时间 + 百分比用量
+            const win = (label, percent, resetAt, exceeded) => React.createElement("div", { className: "um-row", key: label },
+              React.createElement("span", { className: "um-k" }, label),
+              React.createElement("span", { className: "um-v" + (exceeded ? " um-err" : "") }, (resetAt ? fmtStamp(resetAt) : "—") + " · " + fmtPct(percent)))
+            const rolling = p.rolling || {}
+            const weekly = p.weekly || {}
+            return React.createElement("div", null,
+              win("5 小时", rolling.percent, rolling.resetsAt, rolling.exceeded),
+              win("周", weekly.percent, weekly.resetsAt, weekly.exceeded),
+              win("月", p.usagePercent, p.periodEnd, false))
           }
           if (p.kind === "usage") {
             const rows = []

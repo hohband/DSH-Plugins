@@ -4,9 +4,9 @@
 
 - **DeepSeek 官方** (`deepseek-official`)：账户剩余额度（货币单位），数据来自 `GET https://api.deepseek.com/user/balance`。
 - **OpenCode Go** (`opencode-go`)：5 小时滚动窗口用量百分比，数据来自 `GET https://opencode.ai/zen/go/v1/usage`。
-- **Command Code** (`command-code`)：GOAT 等订阅的用量（本月剩余额度 + 5 小时/本周消费窗口），数据来自 `GET https://api.commandcode.ai/alpha/billing/credits` 与 `GET https://api.commandcode.ai/alpha/billing/subscriptions`。
+- **Command Code** (`command-code`)：GOAT 等订阅的用量（5 小时 / 周 / 月三个窗口的重置时间与用量百分比），数据来自 `GET https://api.commandcode.ai/alpha/billing/credits` 与 `GET https://api.commandcode.ai/alpha/billing/subscriptions`。
 
-摘要胶囊示例：`⚡ DS 7.79CNY · OG 5h 10% · CC GOAT 5h 6.6%`。点击胶囊展开详情面板（DeepSeek 三项余额 + OpenCode 滚动/本周/本月 + Command Code 套餐/本月剩余/本期已用/5 小时与本周窗口/重置时间/周期结束），「✕」关闭，每 60 秒自动刷新。
+摘要胶囊示例：`⚡ DS 7.79CNY · OG 5h 10% · CC GOAT 5h 6.6%`。点击胶囊展开详情面板（DeepSeek 三项余额 + OpenCode 滚动/本周/本月 + Command Code 的 5 小时/周/月三个窗口，每行 = 窗口名称 + 重置时间 + 百分比用量），「✕」关闭，每 60 秒自动刷新。
 
 ## 两种形态
 
