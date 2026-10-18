@@ -8,7 +8,9 @@
 
 摘要胶囊示例：`⚡ DS 7.79CNY · OG 5h 10% · CC GOAT 5h 6.6%`。点击胶囊展开详情面板（DeepSeek 三项余额 + OpenCode Go 与 Command Code 各三行窗口：「5 小时」「周」「月」，每行左侧 = `窗口名称 · 重置时间`，右侧 = 百分比用量），「✕」关闭，每 60 秒自动刷新。
 
-胶囊右端还有一个「—」折叠按钮：点击后整条状态条收拢成右下角的圆形 ⚡ 图标，不再遮挡页面内容；点击该图标即可还原状态条。折叠状态写入 `localStorage`（键 `usage-meter:collapsed`），刷新/重载后保持；受限沙箱里取不到 `localStorage` 时自动降级为仅本次运行内有效。
+状态条左端的 **⚡ 本身就是折叠开关**（不再有单独的「—」按钮）：点它整条状态条收拢成右下角的圆形 ⚡ 图标，不再遮挡页面内容；收拢后再点同一个 ⚡ 图标即可展开。⚡ 用 padding + 负 margin 把命中区补到约 19×19px 并带 hover 底色，`pointerdown` 直接截断冒泡、且展开态下不参与拖拽，因此按它绝不会被整条拖拽抢走。折叠状态写入 `localStorage`（键 `usage-meter:collapsed`），刷新/重载后保持；受限沙箱里取不到 `localStorage` 时自动降级为仅本次运行内有效。
+
+状态条其余部分（以及收拢后的 ⚡ 图标）可以直接拖拽到窗口任意位置：位移小于 6px 仍按点击处理，所以展开详情、折叠、还原都不会被误触，拖拽收尾时浏览器补发的那次 click 也会被丢弃。位置写入 `localStorage`（键 `usage-meter:pos`，`{x,y}` 为左上角像素），刷新后保持，并始终按视口夹取 —— 拖不出屏幕，窗口缩小后再出现时也会自动夹回可见范围。详情面板跟随状态条移动，靠近视口上边缘 / 左边缘时自动翻到另一侧。
 
 ## 两种形态
 
@@ -59,6 +61,7 @@
 - 两个 usage provider 在 Host 侧就统一成同一形状：`rolling` / `weekly` / `monthly` 三个 `{ percent, resetsAt, exceeded }` 窗口，因此 Client 只有一个 `kind === 'usage'` 渲染分支。OpenCode Go 直接用接口的 rolling/weekly/monthly；Command Code 的 5 小时与周取自 `windowLimits`，月窗口 = 额度池已用占比 + 订阅 `currentPeriodEnd`（旧版 Host 缺 `monthly` 时 Client 会用 `usagePercent` + `periodEnd` 兜底）。
 - Host 半（`index.js`，ESM）:`inject: ['webServer', 'shell', 'subprocess']`，`ctx.effect` 注册 `/usage-meter` route（Node http API），subprocess/shell/credentials 通过 `ctx.get` 读取。
 - Client 半（`client.js`）:预构建 bundle 格式 `window.__ModuleLoader__.load({ id, factory })`，`inject: ['slots', 'timer']`（由 `@deepseek-ai/dsh-client-ui-renderer` / `@deepseek-ai/dsh-cordis-client-runner` 提供，列在 `dsh.client.inject`），`react` 由 client module loader 内置提供。UI 注册在 `shell.overlay`（list 槽，kind 字段为 `id`/`order`/`label`），数据用同源 `fetch('/usage-meter')` 拉取。
+- 拖拽用 Pointer Events 实现：`pointerdown` 记录起点与元素 `getBoundingClientRect()`，位移超过阈值才 `setPointerCapture` 并进入拖动，`pointermove` / `pointerup` / `pointercancel` 直接挂在元素的 `ownerDocument` 上 —— 全程只用元素自带的 `ownerDocument` / `documentElement`，不碰 `window` / `document` 全局，因此动态插件沙箱里同样可用；位置按 `documentElement.clientWidth/clientHeight` 夹取。普通点击不捕获指针，所以点击与拖拽互不干扰；展开态下的 ⚡ 与面板内的按钮则直接从拖拽起手区排除（`pointerdown` 立即 return 并截断冒泡）。
 - **改完代码如何生效**：Client 半由 client-modules 的 HMR 文件轮询（500ms）监听，落盘后 `/plugins/events` 会推送新的 `usage-meter` rev，浏览器自动/刷新即生效；Host 半走 Node 的 ESM 缓存，profile patch 热重载只重启 entry 而不会重新 import 模块，**必须重启 DSH 才会加载新的 `index.js`**（页面刷新、窗口 reload 都无效）。
 
 ### 动态装载（dynamic/）
