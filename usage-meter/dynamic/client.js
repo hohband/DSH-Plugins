@@ -12,6 +12,8 @@ return {
 
     styles.insert(`
       .um-wrap { position: fixed; right: 8px; bottom: 8px; z-index: 9000; }
+      .um-mini { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; background: rgba(24,25,30,.92); border: 1px solid #2c2d33; border-radius: 50%; font-size: 13px; line-height: 1; color: #ffd166; box-shadow: 0 4px 16px rgba(0,0,0,.35); cursor: pointer; pointer-events: auto; user-select: none; }
+      .um-mini:hover { border-color: #4a4b52; background: rgba(32,33,40,.95); }
       .um-pill { display: inline-flex; align-items: center; gap: 8px; background: rgba(24,25,30,.92); border: 1px solid #2c2d33; border-radius: 8px; padding: 4px 10px; font-size: 11px; line-height: 1.4; color: #cfcfd6; white-space: nowrap; box-shadow: 0 4px 16px rgba(0,0,0,.35); font-variant-numeric: tabular-nums; cursor: pointer; pointer-events: auto; }
       .um-dot { color: #ffd166; }
       .um-sep { color: #3a3b42; }
@@ -23,6 +25,8 @@ return {
       .um-head-title { flex: 1; font-weight: 600; }
       .um-close { background: none; border: none; color: #9a9aa3; cursor: pointer; font-size: 14px; line-height: 1; padding: 0 2px; }
       .um-close:hover { color: #fff; }
+      .um-collapse { background: none; border: none; margin: 0; padding: 0 0 0 2px; color: #7c7c85; cursor: pointer; font-size: 11px; line-height: 1; }
+      .um-collapse:hover { color: #fff; }
       .um-item { padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,.07); }
       .um-item:last-child { border-bottom: none; }
       .um-title { font-weight: 600; margin-bottom: 4px; }
@@ -43,9 +47,38 @@ return {
       return pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes())
     }
 
+    // 折叠状态优先存 localStorage(刷新后保持);受限沙箱里取不到时降级为纯内存状态
+    const COLLAPSED_KEY = 'usage-meter:collapsed'
+
+    function readCollapsed() {
+      try {
+        return typeof localStorage !== 'undefined' && localStorage.getItem(COLLAPSED_KEY) === '1'
+      } catch (e) {
+        return false
+      }
+    }
+
+    function writeCollapsed(value) {
+      try {
+        if (typeof localStorage !== 'undefined') localStorage.setItem(COLLAPSED_KEY, value ? '1' : '0')
+      } catch (e) {}
+    }
+
     function UsagePanel() {
       const [data, setData] = React.useState(null)
       const [open, setOpen] = React.useState(false)
+      const [collapsed, setCollapsed] = React.useState(readCollapsed)
+
+      function collapse() {
+        writeCollapsed(true)
+        setOpen(false)
+        setCollapsed(true)
+      }
+
+      function expand() {
+        writeCollapsed(false)
+        setCollapsed(false)
+      }
 
       function load() {
         host.call('getUsage', {}).then((d) => setData(d)).catch(() => setData(null))
@@ -57,6 +90,12 @@ return {
         load()
         return () => { if (stopInterval) stopInterval() }
       }, [])
+
+      // 折叠态:状态条收拢成一个圆形图标,点击图标再展开
+      if (collapsed) {
+        return React.createElement('div', { className: 'um-wrap' },
+          React.createElement('span', { className: 'um-mini', onClick: expand, title: '展开额度状态条' }, '⚡'))
+      }
 
       function summarySeg(p, key) {
         const label = p.provider === 'command-code' && p.plan ? p.name + ' ' + p.plan : p.name
@@ -99,6 +138,8 @@ return {
       } else {
         children.push(React.createElement('span', { className: 'um-name', key: 'loading' }, '额度 …'))
       }
+
+      children.push(React.createElement('button', { className: 'um-collapse', key: 'collapse', title: '折叠为图标', onClick: (e) => { e.stopPropagation(); collapse() } }, '—'))
 
       const pill = React.createElement('span', { className: 'um-pill', onClick: () => setOpen(!open), title: '点击展开详情' }, children)
 
