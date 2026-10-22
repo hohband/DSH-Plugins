@@ -14,12 +14,12 @@ window.__ModuleLoader__.load({
     const name = "usage-meter"
 
     const CSS = `
-      .um-wrap { position: fixed; right: 8px; bottom: 8px; z-index: 9000; pointer-events: auto; }
+      .um-wrap { position: fixed; right: 8px; bottom: 8px; z-index: 9000; pointer-events: auto; -webkit-app-region: no-drag; app-region: no-drag; }
       .um-wrap.um-placed { right: auto; bottom: auto; }
       .um-wrap.um-dragging { user-select: none; }
-      .um-mini { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; background: rgba(24,25,30,.92); border: 1px solid #2c2d33; border-radius: 50%; font-size: 13px; line-height: 1; color: #ffd166; box-shadow: 0 4px 16px rgba(0,0,0,.35); cursor: grab; pointer-events: auto; user-select: none; touch-action: none; }
+      .um-mini { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; background: rgba(24,25,30,.92); border: 1px solid #2c2d33; border-radius: 50%; font-size: 13px; line-height: 1; color: #ffd166; box-shadow: 0 4px 16px rgba(0,0,0,.35); cursor: grab; pointer-events: auto; user-select: none; touch-action: none; -webkit-app-region: no-drag; app-region: no-drag; }
       .um-mini:hover { border-color: #4a4b52; background: rgba(32,33,40,.95); }
-      .um-pill { display: inline-flex; align-items: center; gap: 8px; background: rgba(24,25,30,.92); border: 1px solid #2c2d33; border-radius: 8px; padding: 4px 10px; font-size: 11px; line-height: 1.4; color: #cfcfd6; white-space: nowrap; box-shadow: 0 4px 16px rgba(0,0,0,.35); font-variant-numeric: tabular-nums; cursor: grab; pointer-events: auto; touch-action: none; }
+      .um-pill { display: inline-flex; align-items: center; gap: 8px; background: rgba(24,25,30,.92); border: 1px solid #2c2d33; border-radius: 8px; padding: 4px 10px; font-size: 11px; line-height: 1.4; color: #cfcfd6; white-space: nowrap; box-shadow: 0 4px 16px rgba(0,0,0,.35); font-variant-numeric: tabular-nums; cursor: grab; pointer-events: auto; touch-action: none; -webkit-app-region: no-drag; app-region: no-drag; }
       .um-wrap.um-dragging .um-pill, .um-wrap.um-dragging .um-mini { cursor: grabbing; }
       .um-dot { color: #ffd166; cursor: pointer; padding: 2px 3px; margin: -2px -3px; border-radius: 4px; }
       .um-dot:hover { background: rgba(255,255,255,.14); }
@@ -27,7 +27,7 @@ window.__ModuleLoader__.load({
       .um-name { color: #8a8a93; }
       .um-val { color: #e6e6e6; }
       .um-err { color: #f87171; }
-      .um-panel { position: absolute; right: 0; bottom: calc(100% + 6px); z-index: 9000; background: #1e1f24; border: 1px solid #2c2d33; border-radius: 10px; box-shadow: 0 8px 30px rgba(0,0,0,.4); padding: 10px 12px; font-size: 12px; color: #e6e6e6; width: 240px; pointer-events: auto; }
+      .um-panel { position: absolute; right: 0; bottom: calc(100% + 6px); z-index: 9000; background: #1e1f24; border: 1px solid #2c2d33; border-radius: 10px; box-shadow: 0 8px 30px rgba(0,0,0,.4); padding: 10px 12px; font-size: 12px; color: #e6e6e6; width: 240px; pointer-events: auto; -webkit-app-region: no-drag; app-region: no-drag; }
       .um-panel.um-down { bottom: auto; top: calc(100% + 6px); }
       .um-panel.um-left { right: auto; left: 0; }
       .um-head { display: flex; align-items: center; margin-bottom: 4px; }
