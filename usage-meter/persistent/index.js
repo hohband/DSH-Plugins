@@ -4,7 +4,7 @@
 // endpoints with curl (via the subprocess service) and returns JSON.
 
 export const name = 'usage-meter'
-export const inject = ['webServer', 'shell', 'subprocess']
+export const inject = ['webServer', 'subprocess']
 
 // Command Code (cmdc) plan metadata, mirrored from the CLI's own tables:
 // plan id (longest-prefix match) -> display name / monthly allowance in USD.
@@ -125,29 +125,14 @@ async function curlViaSubprocess(ctx, url, key) {
   }
 }
 
-async function curlViaShell(ctx, url, key) {
-  const shell = ctx.get('shell')
-  if (shell === undefined) return null
-  const escapedKey = key.replace(/'/g, "'\\''")
-  const req = { command: "curl -sS -m 15 -H 'Authorization: Bearer " + escapedKey + "' '" + url + "'", maxOutputBytes: 65536 }
-  const spec = shell.resolve(req)
-  const result = await shell.run(spec)
-  if (result.sandbox && result.sandbox.denied) return null
-  const text = result.output ? result.output.text : ''
-  if (result.exitCode !== 0) return null
+// 单个 provider 取数失败只返回 null,由调用方标记 ok: false —— 不能让一个
+// provider 的超时/非零退出把整条响应拖成 500(那样面板会整块空掉)。
+async function curlJson(ctx, url, key) {
   try {
-    return JSON.parse(text)
+    return await curlViaSubprocess(ctx, url, key)
   } catch (e) {
     return null
   }
-}
-
-async function curlJson(ctx, url, key) {
-  try {
-    const result = await curlViaSubprocess(ctx, url, key)
-    if (result !== null) return result
-  } catch (e) {}
-  return curlViaShell(ctx, url, key)
 }
 
 export function apply(ctx) {

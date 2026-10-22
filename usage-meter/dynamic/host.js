@@ -7,7 +7,6 @@ return {
   name: 'usage-meter-host',
   apply(ctx) {
     const subprocess = ctx.get('subprocess')
-    const shell = ctx.get('shell')
     const credentials = ctx.get('credentials')
     const llm = ctx.get('llm')
 
@@ -31,32 +30,11 @@ return {
       return proc.collected.stdout ? proc.collected.stdout.readFrom(0).text : ''
     }
 
-    async function curlViaShell(url, key) {
-      const escapedKey = key.replace(/'/g, "'\\''")
-      const req = { command: "curl -sS -m 15 -H 'Authorization: Bearer " + escapedKey + "' '" + url + "'", maxOutputBytes: 65536 }
-      const spec = shell.resolve(req)
-      const result = await shell.run(spec)
-      if (result.sandbox && result.sandbox.denied) throw new Error('shell denied')
-      const text = result.output ? result.output.text : ''
-      if (result.exitCode !== 0) throw new Error('shell exit ' + result.exitCode)
-      return text
-    }
-
-    // Query the two provider endpoints. Dynamic-plugin host sandbox traps the
-    // global `fetch`, so we go through the subprocess service (spawn curl),
-    // falling back to the shell service when subprocess is unavailable.
+    // 只走 subprocess:新版 DSH 的 shell 服务已没有 resolve/run,旧的 shell 兜底
+    // 必然抛错(而且会把单次失败放大成整体不可用)。
     async function fetchText(url, key) {
-      if (subprocess !== undefined) {
-        try { return await curlViaSubprocess(url, key) }
-        catch (e) {
-          if (shell !== undefined) { try { return await curlViaShell(url, key) } catch (e2) {} }
-          return null
-        }
-      }
-      if (shell !== undefined) {
-        try { return await curlViaShell(url, key) } catch (e) {}
-      }
-      return null
+      if (subprocess === undefined) return null
+      try { return await curlViaSubprocess(url, key) } catch (e) { return null }
     }
 
     function names() {

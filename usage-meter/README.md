@@ -57,7 +57,7 @@
 
 ### 技术要点
 
-- 动态插件 Host 沙箱会 trap `fetch`、`web.fetch` 无 header 支持、opencode-go 不允许 CORS，因此数据查询走 **Host 端 subprocess 服务 spawn `curl`** 携带 `Authorization: Bearer`，subprocess 不可用时 fallback 到 shell 服务（key 经单引号转义，无 shell 注入）。
+- 动态插件 Host 沙箱会 trap `fetch`、`web.fetch` 无 header 支持、opencode-go 不允许 CORS，因此数据查询走 **Host 端 subprocess 服务 spawn `curl`** 携带 `Authorization: Bearer`。**不再有 shell 兜底**：新版 DSH 的 `shell` 服务只剩 `execute`，旧的 `shell.resolve` / `shell.run` 必然抛 `shell.run is not a function`，而且旧代码把「任何一个 provider 的 curl 超时/非零退出」都导向这个兜底，于是一次瞬时失败就把整条响应变成 500 `{providers: []}` —— 面板只剩标题、看起来「展开后没有内容」。现在单个 provider 取数失败只标记该条 `ok: false`，其余照常返回；客户端对空结果显式渲染「获取失败: <原因>」，状态条显示 `额度 ⚠` 而不是缩成一个光秃秃的 ⚡。打开面板时若还没有数据会立刻补一次请求（`load()`），不用等 60 秒轮询。
 - API key 通过 `credentials.resolve('DEEPSEEK_API_KEY' / 'OPENCODE_GO_API_KEY' / 'COMMAND_CODE_API_KEY')` 取用，**仅在 Host 侧使用**，HTTP 接口只返回余额/用量数字，不含 secret。
 - Command Code 的 `credits.monthlyCredits` 是**剩余**额度（倒扣），因此月度池子上限取 CLI 内置的套餐额度表（`individual-goat` = 70、`individual-go` = 10、`individual-pro` = 30 …，按 planId 最长前缀匹配）；`windowLimits.fiveHour` / `weekly` 的 `used`/`cap` 直接换算百分比。
 - 两个 usage provider 在 Host 侧就统一成同一形状：`rolling` / `weekly` / `monthly` 三个 `{ percent, resetsAt, exceeded }` 窗口，因此 Client 只有一个 `kind === 'usage'` 渲染分支。OpenCode Go 直接用接口的 rolling/weekly/monthly；Command Code 的 5 小时与周取自 `windowLimits`，月窗口 = 额度池已用占比 + 订阅 `currentPeriodEnd`（旧版 Host 缺 `monthly` 时 Client 会用 `usagePercent` + `periodEnd` 兜底）。

@@ -199,6 +199,10 @@ window.__ModuleLoader__.load({
 
         function onBarClick() {
           if (suppressClick.current) { suppressClick.current = false; return }
+          // 面板即将打开但还没有数据(首次请求失败 / 仍在路上)时立刻补一次,
+          // 否则要空着等 60 秒的下一个轮询周期
+          const providers = data && Array.isArray(data.providers) ? data.providers : []
+          if (!open && providers.length === 0) load()
           setOpen(!open)
         }
 
@@ -226,8 +230,8 @@ window.__ModuleLoader__.load({
         function load() {
           fetch("/usage-meter")
             .then((r) => r.json())
-            .then((d) => setData(d))
-            .catch(() => setData(null))
+            .then((d) => setData(d && typeof d === "object" ? d : { providers: [], error: "响应格式异常" }))
+            .catch((e) => setData({ providers: [], error: String((e && e.message) || e) }))
         }
 
         React.useEffect(() => {
@@ -305,12 +309,15 @@ window.__ModuleLoader__.load({
         }, "⚡")
 
         const children = [dot]
-        if (data && data.providers) {
-          data.providers.forEach((p) => {
+        const providers = data && Array.isArray(data.providers) ? data.providers : []
+        if (providers.length > 0) {
+          providers.forEach((p) => {
             children.push(summarySeg(p, "seg-" + p.provider))
             children.push(React.createElement("span", { className: "um-sep", key: "sep-" + p.provider }, "·"))
           })
-          if (data.providers.length > 0) children.pop()
+          children.pop()
+        } else if (data && data.error) {
+          children.push(React.createElement("span", { className: "um-err", key: "error", title: data.error }, "额度 ⚠"))
         } else {
           children.push(React.createElement("span", { className: "um-name", key: "loading" }, "额度 …"))
         }
@@ -322,12 +329,17 @@ window.__ModuleLoader__.load({
 
         let panel = null
         if (open) {
-          const items = (data && data.providers ? data.providers : []).map((p) =>
+          const items = providers.map((p) =>
             React.createElement("div", { className: "um-item", key: p.provider },
               React.createElement("div", { className: "um-title" }, (p.provider === "deepseek-official" ? "DeepSeek 官方" : p.provider === "opencode-go" ? "OpenCode Go" : p.provider === "command-code" ? "Command Code" + (p.plan ? " " + p.plan : "") : p.name)),
               detailBody(p),
             )
           )
+          if (items.length === 0) {
+            items.push(React.createElement("div", { className: "um-item", key: "__empty" },
+              React.createElement("div", { className: data ? "um-err" : "um-k" }, data ? ("获取失败" + (data.error ? ":" + data.error : "")) : "读取中 …"),
+            ))
+          }
           panel = React.createElement("div", { className: panelCls },
             React.createElement("div", { className: "um-head" },
               React.createElement("span", { className: "um-head-title" }, "Provider 额度"),
